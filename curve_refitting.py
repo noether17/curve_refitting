@@ -161,6 +161,7 @@ def energy(curve):
   x_values = np.array([state[1] for state in curve])
   y_values = np.array([state[2] for state in curve])
   p, residuals, rank, singular_values, rcond = np.polyfit(times, np.column_stack((x_values, y_values)), 2, full=True)
+  # simple sum of squared residuals will likely fail to combine curves; may need a softening constant
   return np.sum(residuals)
 
 def anneal_curves(curves, pair):
