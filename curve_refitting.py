@@ -165,14 +165,14 @@ def energy(curve):
   return np.sum(residuals)
 
 def anneal_curves(curves, pair):
-  t = 0.0
-  T_max = 10.0 # initial temperature
-  tau = 1.0e3 # cooling timescale
-  T = T_max
   curve1 = curves[pair[0]]
   curve2 = curves[pair[1]]
   E = energy(curve1) + energy(curve2)
+  T_max = 10.0 # initial temperature
   T_min = 1.0e-3*E # final temperature
+  tau = 1.0e3 # cooling timescale
+  T = T_max
+  t = 0.0
   while T > T_min:
     # cooling
     t += 1
