@@ -30,24 +30,29 @@ def main():
   curves = id_curves(curves)
 
   # split the curves
-  curves = split_curves(curves, gap_portion)
+  #curves = split_curves(curves, gap_portion)
 
   # merge the curves
-  curves = merge_curves(curves)
+  #curves = merge_curves(curves)
 
   # print curve stats
   print_curve_stats(curves)
 
   # find close curves
   close_curves = find_close_curves(curves, 2.0e2)
-  plot_pairs(curves, close_curves)
+  #plot_pairs(curves, close_curves)
 
   # scramble the curves
   curves = scramble_curves(curves, close_curves)
-  plot_pairs(curves, close_curves)
+  #plot_pairs(curves, close_curves)
 
   # print curve stats, post-scramble
   print_curve_stats(curves)
+
+  # anneal the curves
+  plot_pairs(curves, [close_curves[0]])
+  anneal_curves(curves, close_curves[0][0])
+  plot_pairs(curves, [close_curves[0]])
 
   # plot curves
   plot_min = -frame_width / 2.0 # add some padding
@@ -151,6 +156,47 @@ def scramble_curves(curves, pairs):
     curves[pair[1]] = combined_curve[1::2]
   return curves
 
+def energy(curve):
+  times = np.array([state[0] for state in curve])
+  x_values = np.array([state[1] for state in curve])
+  y_values = np.array([state[2] for state in curve])
+  p, residuals, rank, singular_values, rcond = np.polyfit(times, np.column_stack((x_values, y_values)), 2, full=True)
+  return np.sum(residuals)
+
+def anneal_curves(curves, pair):
+  t = 0.0
+  T_max = 10.0 # initial temperature
+  tau = 1.0e3 # cooling timescale
+  T = T_max
+  curve1 = curves[pair[0]]
+  curve2 = curves[pair[1]]
+  E = energy(curve1) + energy(curve2)
+  T_min = 1.0e-3*E # final temperature
+  while T > T_min:
+    # cooling
+    t += 1
+    T = T_max * np.exp(-t / tau)
+
+    # propose a new state
+    new_curve1 = curve1.copy()
+    new_curve2 = curve2.copy()
+    curve1_index = random.randint(0, len(curve1) - 1)
+    curve2_index = next((k for k, state in enumerate(curve2) if state[0] == curve1[curve1_index][0]), None)
+    if curve2_index is not None:
+      new_curve1[curve1_index], new_curve2[curve2_index] = new_curve2[curve2_index], new_curve1[curve1_index]
+    else:
+      new_curve2.append(curve1[curve1_index])
+      new_curve1.pop(curve1_index)
+    new_E = energy(new_curve1) + energy(new_curve2)
+
+    # accept or reject the new state
+    if new_E < E or random.random() < np.exp(-(new_E - E) / T):
+      curve1 = new_curve1
+      curve2 = new_curve2
+      E = new_E
+  curves[pair[0]] = curve1
+  curves[pair[1]] = curve2
+  return curves
 
 if __name__ == "__main__":
   main()
