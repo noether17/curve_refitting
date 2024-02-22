@@ -93,31 +93,8 @@ def polyfit_curve(curve, degree=2):
 
 def merge_curves(curves):
   result = []
-
-  coeff_list = []
-  cov_list = []
-  for curve in curves:
-    coeffs, covariances = polyfit_curve(curve)
-    coeff_list.append(coeffs)
-    cov_list.append(covariances)
-  coeff_list = np.array(coeff_list)
-  cov_list = np.array(cov_list)
-
-  distances = []
-  distance_threshold = 1.0e2
-  for i, j in combinations(range(len(curves)), 2):
-    if (set([state[0] for state in curves[i]]) & set([state[0] for state in curves[j]])):
-      continue
-    x_distance = mahalanobis(coeff_list[i, :, 0], coeff_list[j, :, 0], np.linalg.inv(cov_list[i, :, :, 0] + cov_list[j, :, :, 0]))
-    if x_distance >= distance_threshold: continue # no need to compute y distance
-    y_distance = mahalanobis(coeff_list[i, :, 1], coeff_list[j, :, 1], np.linalg.inv(cov_list[i, :, :, 1] + cov_list[j, :, :, 1]))
-    distance = np.sqrt(x_distance**2 + y_distance**2)
-    if distance < distance_threshold:
-      distances.append([(i, j), distance])
-  distances = sorted(distances, key=lambda x: x[1])
-
   used_indices = set()
-  for pair, distance in distances:
+  for pair, distance in find_close_curves(curves, 1.0e2):
     if pair[0] not in used_indices and pair[1] not in used_indices:
       result.append(curves[pair[0]] + curves[pair[1]])
       used_indices.add(pair[0])
