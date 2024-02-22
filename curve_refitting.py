@@ -50,9 +50,12 @@ def main():
   print_curve_stats(curves)
 
   # anneal the curves
-  plot_pairs(curves, [close_curves[0]])
-  anneal_curves(curves, close_curves[0][0])
-  plot_pairs(curves, [close_curves[0]])
+  plot_pairs(curves, close_curves)
+  unscramble_curves(curves, close_curves)
+  plot_pairs(curves, close_curves)
+
+  # print curve stats, post-unscramble
+  print_curve_stats(curves)
 
   # plot curves
   plot_min = -frame_width / 2.0 # add some padding
@@ -197,6 +200,11 @@ def anneal_curves(curves, pair):
       E = new_E
   curves[pair[0]] = curve1
   curves[pair[1]] = curve2
+  return curves
+
+def unscramble_curves(curves, pairs):
+  for pair, distance in pairs:
+    curves = anneal_curves(curves, pair)
   return curves
 
 if __name__ == "__main__":
