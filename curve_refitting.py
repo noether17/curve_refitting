@@ -38,6 +38,17 @@ def main():
   # print curve stats
   print_curve_stats(curves)
 
+  close_curves = find_close_curves(curves, 2.0e2)
+  print(f"Number of close curves: {len(close_curves)}")
+  print(f"Close curve pairs: {close_curves}")
+  for pair, distance in close_curves:
+    plt.plot([state[1] for state in curves[pair[0]]], [state[2] for state in curves[pair[0]]], 'b.', label=f"Curve {pair[0]}")
+    plt.plot([state[1] for state in curves[pair[1]]], [state[2] for state in curves[pair[1]]], 'r.', label=f"Curve {pair[1]}")
+    plt.title(f"Distance: {distance}")
+    plt.legend()
+    plt.gca().set_aspect('equal')
+    plt.show()
+
   # plot curves
   plot_min = -frame_width / 2.0 # add some padding
   plot_max = 3.0*frame_width / 2.0
@@ -93,20 +104,20 @@ def merge_curves(curves):
   cov_list = np.array(cov_list)
 
   distances = []
+  distance_threshold = 1.0e2
   for i, j in combinations(range(len(curves)), 2):
     if (set([state[0] for state in curves[i]]) & set([state[0] for state in curves[j]])):
       continue
     x_distance = mahalanobis(coeff_list[i, :, 0], coeff_list[j, :, 0], np.linalg.inv(cov_list[i, :, :, 0] + cov_list[j, :, :, 0]))
+    if x_distance >= distance_threshold: continue # no need to compute y distance
     y_distance = mahalanobis(coeff_list[i, :, 1], coeff_list[j, :, 1], np.linalg.inv(cov_list[i, :, :, 1] + cov_list[j, :, :, 1]))
-    distances.append([(i, j), np.sqrt(x_distance**2 + y_distance**2)])
+    distance = np.sqrt(x_distance**2 + y_distance**2)
+    if distance < distance_threshold:
+      distances.append([(i, j), distance])
   distances = sorted(distances, key=lambda x: x[1])
 
-  distance_threshold = 1.0e2
   used_indices = set()
   for pair, distance in distances:
-    if distance >= distance_threshold:
-      print(f"Threshold reached at distance {distance} for pair {pair}")
-      break
     if pair[0] not in used_indices and pair[1] not in used_indices:
       result.append(curves[pair[0]] + curves[pair[1]])
       used_indices.add(pair[0])
@@ -115,6 +126,20 @@ def merge_curves(curves):
     if i not in used_indices:
       result.append(curves[i])
 
+  return result
+
+def find_close_curves(curves, distance_threshold):
+  fit_params = [list(polyfit_curve(curve)) for curve in curves]
+  result = []
+  for i, j in combinations(range(len(curves)), 2):
+    combined_cov = (fit_params[i][1] + fit_params[j][1]) / 2.0
+    x_distance = mahalanobis(fit_params[i][0][:, 0], fit_params[j][0][:, 0], np.linalg.inv(combined_cov[:, :, 0]))
+    if x_distance > distance_threshold: continue # no need to compute y distance
+    y_distance = mahalanobis(fit_params[i][0][:, 1], fit_params[j][0][:, 1], np.linalg.inv(combined_cov[:, :, 1]))
+    distance = np.sqrt(x_distance**2 + y_distance**2)
+    if distance < distance_threshold:
+      result.append([(i, j), distance])
+  result = sorted(result, key=lambda x: x[1])
   return result
 
 def print_curve_stats(curves):
