@@ -38,16 +38,16 @@ def main():
   # print curve stats
   print_curve_stats(curves)
 
+  # find close curves
   close_curves = find_close_curves(curves, 2.0e2)
-  print(f"Number of close curves: {len(close_curves)}")
-  print(f"Close curve pairs: {close_curves}")
-  for pair, distance in close_curves:
-    plt.plot([state[1] for state in curves[pair[0]]], [state[2] for state in curves[pair[0]]], 'b.', label=f"Curve {pair[0]}")
-    plt.plot([state[1] for state in curves[pair[1]]], [state[2] for state in curves[pair[1]]], 'r.', label=f"Curve {pair[1]}")
-    plt.title(f"Distance: {distance}")
-    plt.legend()
-    plt.gca().set_aspect('equal')
-    plt.show()
+  plot_pairs(curves, close_curves)
+
+  # scramble the curves
+  curves = scramble_curves(curves, close_curves)
+  plot_pairs(curves, close_curves)
+
+  # print curve stats, post-scramble
+  print_curve_stats(curves)
 
   # plot curves
   plot_min = -frame_width / 2.0 # add some padding
@@ -129,6 +129,28 @@ def print_curve_stats(curves):
 
   n_split = len([id for id in ids if len([curve for curve in curves if id in [state[3] for state in curve]]) > 1])
   print(f"Number of split curves: {n_split}")
+
+def plot_pairs(curves, pairs):
+  print(f"Number of pairs: {len(pairs)}")
+  for pair, distance in pairs:
+    plt.plot([state[1] for state in curves[pair[0]]], [state[2] for state in curves[pair[0]]], 'b.', label=f"Curve {pair[0]}")
+    plt.plot([state[1] for state in curves[pair[1]]], [state[2] for state in curves[pair[1]]], 'r.', label=f"Curve {pair[1]}")
+    plt.title(f"Distance: {distance}")
+    plt.legend()
+    plt.gca().set_aspect('equal')
+    plt.show()
+
+def scramble_curves(curves, pairs):
+  for pair, distance in pairs:
+    curve1 = curves[pair[0]]
+    curve2 = curves[pair[1]]
+    combined_curve = curve1 + curve2
+    random.shuffle(combined_curve)
+    combined_curve = sorted(combined_curve, key=lambda x: x[0]) # make sure curves do not duplicate times
+    curves[pair[0]] = combined_curve[0::2]
+    curves[pair[1]] = combined_curve[1::2]
+  return curves
+
 
 if __name__ == "__main__":
   main()
