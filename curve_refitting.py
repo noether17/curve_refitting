@@ -5,6 +5,8 @@ import numpy as np
 import random
 from scipy.spatial.distance import mahalanobis
 
+import test_setup as setup
+
 def main():
   # simulation parameters
   n_curves = 1000
@@ -24,7 +26,7 @@ def main():
   init_vel = lambda: polar_to_cartesian([random.uniform(min_vel, max_vel), random.uniform(0, 2 * np.pi)])
 
   # simulate trajectories
-  curves = [integrate_euler(init_pos(), init_vel(), brownian_acc(brownian_sigma), dt, max_time) for _ in np.arange(n_curves)]
+  curves = [setup.integrate_euler(init_pos(), init_vel(), brownian_acc(brownian_sigma), dt, max_time) for _ in np.arange(n_curves)]
 
   # tag individual states with curve id for validation
   curves = id_curves(curves)
@@ -67,15 +69,6 @@ def main():
   plt.xlim(plot_min, plot_max) # add some padding
   plt.ylim(plot_min, plot_max)
   plt.show()
-
-def integrate_euler(pos, vel, acc, dt, max_time):
-  t = 0.0
-  trajectory = [np.hstack([t, pos])]
-  for t in np.arange(dt, max_time, dt):
-    pos += vel * dt
-    vel += acc() * dt
-    trajectory.append(np.hstack([t, pos]))
-  return trajectory
 
 def brownian_acc(sigma=1.0):
   return lambda: np.array([random.gauss(0, sigma) for _ in range(2)])
