@@ -17,6 +17,7 @@ def main():
   parser.add_argument("-s", "--scenario", type=str, default="bisect", help="Scenario: bisect, unzip, scramble")
   parser.add_argument("-g", "--gap_portion", type=float, default=0.1, help="Portion of curve to remove (for bisect scenario)")
   parser.add_argument("-d", "--distance_threshold", type=float, default=2.0e2, help="Distance threshold (for scramble scenario)")
+  parser.add_argument("-r", "--refit_strategy", type=str, default="anneal", help="Refit strategy: anneal, polyfit")
   args = parser.parse_args()
   n_curves = args.n_curves
   n_points = args.n_points
@@ -24,6 +25,7 @@ def main():
   scenario = args.scenario
   gap_portion = args.gap_portion
   distance_threshold = args.distance_threshold
+  strategy = args.refit_strategy
 
   # set random seed for reproducibility
   random.seed(0)
@@ -43,14 +45,14 @@ def main():
   print(f"Curve statistics after applying {scenario} scenario:")
   print_curve_stats(curves)
 
-  # merge the curves
-  #curves = merge_curves(curves)
-
-  # anneal the curves
-  close_curves = util.find_close_curves(curves, distance_threshold)
-  curves = unscramble_curves(curves, close_curves)
-
-  # print curve stats, post-unscramble
+  # apply refit strategy
+  if strategy == "anneal":
+    curves = anneal_close_curves(curves, distance_threshold)
+  elif strategy == "polyfit":
+    curves = polyfit_merge_curves(curves)
+  else:
+    raise ValueError(f"Invalid refit strategy: {strategy}")
+  print(f"Curve statistics after applying {strategy} refit strategy:")
   print_curve_stats(curves)
 
   # plot curves
@@ -58,7 +60,7 @@ def main():
     plt.plot([state[1] for state in curve], [state[2] for state in curve], 'b,')
   plt.show()
 
-def merge_curves(curves):
+def polyfit_merge_curves(curves):
   result = []
   used_indices = set()
   for pair, distance in util.find_close_curves(curves, 1.0e2):
@@ -139,7 +141,8 @@ def anneal_curves(curves, pair):
   curves[pair[1]] = curve2
   return curves
 
-def unscramble_curves(curves, pairs):
+def anneal_close_curves(curves, distance_threshold):
+  pairs = util.find_close_curves(curves, distance_threshold)
   for pair, distance in pairs:
     curves = anneal_curves(curves, pair)
   return [curve for curve in curves if len(curve) > 0]
