@@ -38,21 +38,23 @@ def main():
   # print curve stats
   print_curve_stats(curves)
 
+  curves = unzip_curves(curves)
+
   # find close curves
   close_curves = find_close_curves(curves, 2.0e2)
   #plot_pairs(curves, close_curves)
 
   # scramble the curves
-  curves = scramble_curves(curves, close_curves)
+  #curves = scramble_curves(curves, close_curves)
   #plot_pairs(curves, close_curves)
 
   # print curve stats, post-scramble
   print_curve_stats(curves)
 
   # anneal the curves
-  plot_pairs(curves, close_curves)
-  unscramble_curves(curves, close_curves)
-  plot_pairs(curves, close_curves)
+  #plot_pairs(curves, close_curves)
+  curves = unscramble_curves(curves, close_curves)
+  #plot_pairs(curves, close_curves)
 
   # print curve stats, post-unscramble
   print_curve_stats(curves)
@@ -91,6 +93,14 @@ def split_curves(curves, gap_portion):
     gap_index = int((len(curve) - gap_size) / 2)
     result.append(curve[:gap_index])
     result.append(curve[gap_index + gap_size:])
+  return result
+
+def unzip_curves(curves):
+  result = []
+  for curve in curves:
+    assignments = [random.randint(0, 1) for _ in np.arange(len(curve))]
+    result.append([curve[i] for i in np.arange(len(curve)) if assignments[i] == 0])
+    result.append([curve[i] for i in np.arange(len(curve)) if assignments[i] == 1])
   return result
 
 def polyfit_curve(curve, degree=2):
@@ -160,6 +170,8 @@ def scramble_curves(curves, pairs):
   return curves
 
 def energy(curve):
+  if len(curve) == 0: return 0.0
+  if len(curve) < 3: return 0.0
   times = np.array([state[0] for state in curve])
   x_values = np.array([state[1] for state in curve])
   y_values = np.array([state[2] for state in curve])
@@ -182,6 +194,7 @@ def anneal_curves(curves, pair):
     T = T_max * np.exp(-t / tau)
 
     # propose a new state
+    if len(curve1) == 0: break
     new_curve1 = curve1.copy()
     new_curve2 = curve2.copy()
     curve1_index = random.randint(0, len(curve1) - 1)
@@ -205,7 +218,7 @@ def anneal_curves(curves, pair):
 def unscramble_curves(curves, pairs):
   for pair, distance in pairs:
     curves = anneal_curves(curves, pair)
-  return curves
+  return [curve for curve in curves if len(curve) > 0]
 
 if __name__ == "__main__":
   main()
