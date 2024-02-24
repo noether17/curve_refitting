@@ -6,6 +6,7 @@ import random
 from scipy.spatial.distance import mahalanobis
 
 import test_setup as setup
+import util
 
 def main():
   # simulation parameters
@@ -20,8 +21,8 @@ def main():
   # simulate trajectories
   curves = setup.generate_curves(n_curves, n_points, brownian_parameter)
 
-  # split the curves
-  #curves = split_curves(curves, gap_portion)
+  # bisect the curves
+  #curves = bisect_curves(curves, gap_portion)
 
   # merge the curves
   #curves = merge_curves(curves)
@@ -29,10 +30,10 @@ def main():
   # print curve stats
   print_curve_stats(curves)
 
-  curves = unzip_curves(curves)
+  curves = setup.unzip_curves(curves)
 
   # find close curves
-  close_curves = find_close_curves(curves, 2.0e2)
+  close_curves = util.find_close_curves(curves, 2.0e2)
   #plot_pairs(curves, close_curves)
 
   # scramble the curves
@@ -55,33 +56,10 @@ def main():
     plt.plot([state[1] for state in curve], [state[2] for state in curve], 'b,')
   plt.show()
 
-def split_curves(curves, gap_portion):
-  result = []
-  for curve in curves:
-    gap_size = int(len(curve) * gap_portion)
-    gap_index = int((len(curve) - gap_size) / 2)
-    result.append(curve[:gap_index])
-    result.append(curve[gap_index + gap_size:])
-  return result
-
-def unzip_curves(curves):
-  result = []
-  for curve in curves:
-    assignments = [random.randint(0, 1) for _ in np.arange(len(curve))]
-    result.append([curve[i] for i in np.arange(len(curve)) if assignments[i] == 0])
-    result.append([curve[i] for i in np.arange(len(curve)) if assignments[i] == 1])
-  return result
-
-def polyfit_curve(curve, degree=2):
-  times = np.array([state[0] for state in curve])
-  x_values = np.array([state[1] for state in curve])
-  y_values = np.array([state[2] for state in curve])
-  return np.polyfit(times, np.column_stack((x_values, y_values)), degree, cov=True)
-
 def merge_curves(curves):
   result = []
   used_indices = set()
-  for pair, distance in find_close_curves(curves, 1.0e2):
+  for pair, distance in util.find_close_curves(curves, 1.0e2):
     if pair[0] not in used_indices and pair[1] not in used_indices:
       result.append(curves[pair[0]] + curves[pair[1]])
       used_indices.add(pair[0])
@@ -90,20 +68,6 @@ def merge_curves(curves):
     if i not in used_indices:
       result.append(curves[i])
 
-  return result
-
-def find_close_curves(curves, distance_threshold):
-  fit_params = [list(polyfit_curve(curve)) for curve in curves]
-  result = []
-  for i, j in combinations(range(len(curves)), 2):
-    combined_cov = (fit_params[i][1] + fit_params[j][1]) / 2.0
-    x_distance = mahalanobis(fit_params[i][0][:, 0], fit_params[j][0][:, 0], np.linalg.inv(combined_cov[:, :, 0]))
-    if x_distance > distance_threshold: continue # no need to compute y distance
-    y_distance = mahalanobis(fit_params[i][0][:, 1], fit_params[j][0][:, 1], np.linalg.inv(combined_cov[:, :, 1]))
-    distance = np.sqrt(x_distance**2 + y_distance**2)
-    if distance < distance_threshold:
-      result.append([(i, j), distance])
-  result = sorted(result, key=lambda x: x[1])
   return result
 
 def print_curve_stats(curves):
@@ -126,17 +90,6 @@ def plot_pairs(curves, pairs):
     plt.legend()
     plt.gca().set_aspect('equal')
     plt.show()
-
-def scramble_curves(curves, pairs):
-  for pair, distance in pairs:
-    curve1 = curves[pair[0]]
-    curve2 = curves[pair[1]]
-    combined_curve = curve1 + curve2
-    random.shuffle(combined_curve)
-    combined_curve = sorted(combined_curve, key=lambda x: x[0]) # make sure curves do not duplicate times
-    curves[pair[0]] = combined_curve[0::2]
-    curves[pair[1]] = combined_curve[1::2]
-  return curves
 
 def energy(curve):
   if len(curve) == 0: return 0.0
