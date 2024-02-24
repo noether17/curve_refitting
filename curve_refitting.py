@@ -10,26 +10,15 @@ import test_setup as setup
 def main():
   # simulation parameters
   n_curves = 1000
-  max_time = 25.0
-  dt = 1.0
-  frame_width = 1.0
-  max_vel = frame_width / max_time / 2.0
-  min_vel = max_vel / 2.0
-  brownian_sigma = max_vel / 1.0e2
+  n_points = 25.0
+  brownian_parameter = 1.0e-2
   gap_portion = 0.1
 
   # set random seed for reproducibility
   random.seed(0)
 
-  # initialize pos and vel functions
-  init_pos = lambda: np.array([random.uniform(0.0, frame_width), random.uniform(0.0, frame_width)])
-  init_vel = lambda: setup.polar_to_cartesian([random.uniform(min_vel, max_vel), random.uniform(0, 2 * np.pi)])
-
   # simulate trajectories
-  curves = [setup.integrate_euler(init_pos(), init_vel(), setup.brownian_acc(brownian_sigma), dt, max_time) for _ in np.arange(n_curves)]
-
-  # tag individual states with curve id for validation
-  curves = setup.id_curves(curves)
+  curves = setup.generate_curves(n_curves, n_points, brownian_parameter)
 
   # split the curves
   #curves = split_curves(curves, gap_portion)
@@ -62,12 +51,8 @@ def main():
   print_curve_stats(curves)
 
   # plot curves
-  plot_min = -frame_width / 2.0 # add some padding
-  plot_max = 3.0*frame_width / 2.0
   for curve in curves:
     plt.plot([state[1] for state in curve], [state[2] for state in curve], 'b,')
-  plt.xlim(plot_min, plot_max) # add some padding
-  plt.ylim(plot_min, plot_max)
   plt.show()
 
 def split_curves(curves, gap_portion):
