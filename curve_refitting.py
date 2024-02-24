@@ -9,11 +9,21 @@ import test_setup as setup
 import util
 
 def main():
-  # simulation parameters
-  n_curves = 1000
-  n_points = 25.0
-  brownian_parameter = 1.0e-2
-  gap_portion = 0.1
+  # parse command-line arguments
+  parser = argparse.ArgumentParser(description="Curve refitting")
+  parser.add_argument("-n", "--n_curves", type=int, default=1000, help="Number of curves to simulate")
+  parser.add_argument("-p", "--n_points", type=int, default=25, help="Number of points per curve")
+  parser.add_argument("-b", "--brownian_parameter", type=float, default=1.0e-2, help="Brownian parameter")
+  parser.add_argument("-s", "--scenario", type=str, default="bisect", help="Scenario: bisect, unzip, scramble")
+  parser.add_argument("-g", "--gap_portion", type=float, default=0.1, help="Portion of curve to remove (for bisect scenario)")
+  parser.add_argument("-d", "--distance_threshold", type=float, default=2.0e2, help="Distance threshold (for scramble scenario)")
+  args = parser.parse_args()
+  n_curves = args.n_curves
+  n_points = args.n_points
+  brownian_parameter = args.brownian_parameter
+  scenario = args.scenario
+  gap_portion = args.gap_portion
+  distance_threshold = args.distance_threshold
 
   # set random seed for reproducibility
   random.seed(0)
@@ -21,32 +31,24 @@ def main():
   # simulate trajectories
   curves = setup.generate_curves(n_curves, n_points, brownian_parameter)
 
-  # bisect the curves
-  #curves = bisect_curves(curves, gap_portion)
+  # apply scenario
+  if scenario == "bisect":
+    curves = setup.bisect_curves(curves, gap_portion)
+  elif scenario == "unzip":
+    curves = setup.unzip_curves(curves)
+  elif scenario == "scramble":
+    curves = setup.scramble_close_curves(curves, distance_threshold)
+  else:
+    raise ValueError(f"Invalid scenario: {scenario}")
+  print(f"Curve statistics after applying {scenario} scenario:")
+  print_curve_stats(curves)
 
   # merge the curves
   #curves = merge_curves(curves)
 
-  # print curve stats
-  print_curve_stats(curves)
-
-  curves = setup.unzip_curves(curves)
-
-  # find close curves
-  close_curves = util.find_close_curves(curves, 2.0e2)
-  #plot_pairs(curves, close_curves)
-
-  # scramble the curves
-  #curves = scramble_curves(curves, close_curves)
-  #plot_pairs(curves, close_curves)
-
-  # print curve stats, post-scramble
-  print_curve_stats(curves)
-
   # anneal the curves
-  #plot_pairs(curves, close_curves)
+  close_curves = util.find_close_curves(curves, distance_threshold)
   curves = unscramble_curves(curves, close_curves)
-  #plot_pairs(curves, close_curves)
 
   # print curve stats, post-unscramble
   print_curve_stats(curves)
