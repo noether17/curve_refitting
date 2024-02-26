@@ -16,22 +16,24 @@ def polyfit_merge_curves(curves):
   return result
 
 def energy(curve):
+  softening_constant = 1.0e-5
   if len(curve) == 0: return 0.0
-  if len(curve) < 3: return 0.0
+  if len(curve) < 3: return softening_constant
   times = np.array([state[0] for state in curve])
   x_values = np.array([state[1] for state in curve])
   y_values = np.array([state[2] for state in curve])
   p, residuals, rank, singular_values, rcond = np.polyfit(times, np.column_stack((x_values, y_values)), 2, full=True)
   # simple sum of squared residuals will likely fail to combine curves; may need a softening constant
-  return np.sum(residuals)
+  #print(f"length: {len(curve)} residuals: {np.sum(residuals)}")
+  return np.sum(residuals) + softening_constant
 
 def anneal_curves(curves, pair):
   curve1 = curves[pair[0]]
   curve2 = curves[pair[1]]
-  E = energy(curve1) + energy(curve2)
-  T_max = 10.0 # initial temperature
+  E = (energy(curve1) + energy(curve2)) * len(curve1) * len(curve2) # TODO: put this logic into energy function; idea is that there is a gradual decrease in energy as points are consolidated
+  T_max = 1.0e1*E # initial temperature
   T_min = 1.0e-3*E # final temperature
-  tau = 1.0e3 # cooling timescale
+  tau = 5.0e1 # cooling timescale
   T = T_max
   t = 0.0
   while T > T_min:
@@ -61,7 +63,7 @@ def anneal_curves(curves, pair):
       raise ValueError("Invalid move index")
 
     # accept or reject the new state
-    new_E = energy(new_curve1) + energy(new_curve2)
+    new_E = (energy(new_curve1) + energy(new_curve2)) * len(new_curve1) * len(new_curve2)
     if new_E < E or random.random() < np.exp(-(new_E - E) / T):
       curve1 = new_curve1
       curve2 = new_curve2

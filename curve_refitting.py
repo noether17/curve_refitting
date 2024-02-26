@@ -57,8 +57,6 @@ def main():
   print(f"Curve statistics after applying {strategy} refit strategy:")
   print_curve_stats(curves)
 
-  plot_pairs(curves, util.find_close_curves(curves, distance_threshold))
-
   # plot curves
   for curve in curves:
     plt.plot([state[1] for state in curve], [state[2] for state in curve], 'b,')
