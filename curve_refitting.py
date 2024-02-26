@@ -17,7 +17,7 @@ def main():
   parser.add_argument("-s", "--scenario", type=str, default="bisect", help="Scenario: bisect, unzip, scramble")
   parser.add_argument("-g", "--gap_portion", type=float, default=0.1, help="Portion of curve to remove (for bisect scenario)")
   parser.add_argument("-d", "--distance_threshold", type=float, default=2.0e2, help="Distance threshold (for scramble scenario)")
-  parser.add_argument("-r", "--refit_strategy", type=str, default="anneal", help="Refit strategy: anneal, polyfit")
+  parser.add_argument("-r", "--refit_strategy", type=str, default="anneal", help="Refit strategy: anneal, polyfit, prediction")
   args = parser.parse_args()
   n_curves = args.n_curves
   n_points = args.n_points
@@ -51,6 +51,8 @@ def main():
     curves = refit.anneal_close_curves(curves, distance_threshold)
   elif strategy == "polyfit":
     curves = refit.polyfit_merge_curves(curves)
+  elif strategy == "prediction":
+    curves = refit.prediction_merge(curves, distance_threshold)
   else:
     raise ValueError(f"Invalid refit strategy: {strategy}")
   print(f"Refit strategy took {time.time() - start_time:.2f} seconds")

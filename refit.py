@@ -77,3 +77,31 @@ def anneal_close_curves(curves, distance_threshold):
   for pair, distance in pairs:
     curves = anneal_curves(curves, pair)
   return [curve for curve in curves if len(curve) > 0]
+
+def prediction(time, curve):
+  times = np.array([state[0] for state in curve])
+  x_values = np.array([state[1] for state in curve])
+  y_values = np.array([state[2] for state in curve])
+  p = np.polyfit(times, np.column_stack((x_values, y_values)), 2)
+  return np.polyval(p, time)
+
+def prediction_difference(curves, pair):
+  curve1 = curves[pair[0][0]]
+  curve2 = curves[pair[0][1]]
+  time = np.min([np.max([state[0] for state in curve1]), np.max([state[0] for state in curve2])])
+  return np.linalg.norm(prediction(time, curve1) - prediction(time, curve2))
+
+def prediction_merge(curves, distance_threshold):
+  pairs = util.find_close_curves(curves, distance_threshold)
+  pairs = sorted(pairs, key=lambda x: prediction_difference(curves, x))
+  result = []
+  used_indices = set()
+  for pair, distance in pairs:
+    if pair[0] not in used_indices and pair[1] not in used_indices:
+      result.append(curves[pair[0]] + curves[pair[1]])
+      used_indices.add(pair[0])
+      used_indices.add(pair[1])
+  for i in range(len(curves)):
+    if i not in used_indices:
+      result.append(curves[i])
+  return result
