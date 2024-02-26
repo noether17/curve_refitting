@@ -6,6 +6,7 @@ import time
 
 import test_setup as setup
 import refit
+import util
 
 def main():
   # parse command-line arguments
@@ -55,6 +56,8 @@ def main():
   print(f"Refit strategy took {time.time() - start_time:.2f} seconds")
   print(f"Curve statistics after applying {strategy} refit strategy:")
   print_curve_stats(curves)
+
+  plot_pairs(curves, util.find_close_curves(curves, distance_threshold))
 
   # plot curves
   for curve in curves:

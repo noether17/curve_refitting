@@ -40,19 +40,28 @@ def anneal_curves(curves, pair):
     T = T_max * np.exp(-t / tau)
 
     # propose a new state
-    if len(curve1) == 0: break
     new_curve1 = curve1.copy()
     new_curve2 = curve2.copy()
-    curve1_index = random.randint(0, len(curve1) - 1)
-    curve2_index = next((k for k, state in enumerate(curve2) if state[0] == curve1[curve1_index][0]), None)
-    if curve2_index is not None:
-      new_curve1[curve1_index], new_curve2[curve2_index] = new_curve2[curve2_index], new_curve1[curve1_index]
+    move_index = random.randint(0, len(curve1) + len(curve2)- 1)
+    if move_index < len(curve1):
+      curve1_index = move_index
+      curve2_index = next((k for k, state in enumerate(curve2) if state[0] == curve1[curve1_index][0]), None)
     else:
+      curve1_index = next((k for k, state in enumerate(curve1) if state[0] == curve2[move_index - len(curve1)][0]), None)
+      curve2_index = move_index - len(curve1)
+    if curve1_index is not None and curve2_index is not None:
+      new_curve1[curve1_index], new_curve2[curve2_index] = new_curve2[curve2_index], new_curve1[curve1_index]
+    elif curve1_index is not None:
       new_curve2.append(curve1[curve1_index])
       new_curve1.pop(curve1_index)
-    new_E = energy(new_curve1) + energy(new_curve2)
+    elif curve2_index is not None:
+      new_curve1.append(curve2[curve2_index])
+      new_curve2.pop(curve2_index)
+    else:
+      raise ValueError("Invalid move index")
 
     # accept or reject the new state
+    new_E = energy(new_curve1) + energy(new_curve2)
     if new_E < E or random.random() < np.exp(-(new_E - E) / T):
       curve1 = new_curve1
       curve2 = new_curve2
