@@ -1,13 +1,11 @@
 import argparse
-from itertools import combinations
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-from scipy.spatial.distance import mahalanobis
+import time
 
 import test_setup as setup
 import refit
-import util
 
 def main():
   # parse command-line arguments
@@ -47,12 +45,14 @@ def main():
   print_curve_stats(curves)
 
   # apply refit strategy
+  start_time = time.time()
   if strategy == "anneal":
     curves = refit.anneal_close_curves(curves, distance_threshold)
   elif strategy == "polyfit":
     curves = refit.polyfit_merge_curves(curves)
   else:
     raise ValueError(f"Invalid refit strategy: {strategy}")
+  print(f"Refit strategy took {time.time() - start_time:.2f} seconds")
   print(f"Curve statistics after applying {strategy} refit strategy:")
   print_curve_stats(curves)
 
