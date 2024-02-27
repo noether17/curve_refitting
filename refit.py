@@ -2,11 +2,16 @@ import numpy as np
 import random
 import util
 
+def overlap(curve1, curve2):
+  times1 = np.array([state[0] for state in curve1])
+  times2 = np.array([state[0] for state in curve2])
+  return np.intersect1d(times1, times2).size > 0
+
 def polyfit_merge_curves(curves):
   result = []
   used_indices = set()
   for pair, distance in util.find_close_curves(curves, 1.0e2):
-    if pair[0] not in used_indices and pair[1] not in used_indices:
+    if pair[0] not in used_indices and pair[1] not in used_indices and not overlap(curves[pair[0]], curves[pair[1]]):
       result.append(curves[pair[0]] + curves[pair[1]])
       used_indices.add(pair[0])
       used_indices.add(pair[1])
@@ -97,7 +102,7 @@ def prediction_merge(curves, distance_threshold):
   result = []
   used_indices = set()
   for pair, distance in pairs:
-    if pair[0] not in used_indices and pair[1] not in used_indices:
+    if pair[0] not in used_indices and pair[1] not in used_indices and not overlap(curves[pair[0]], curves[pair[1]]):
       result.append(curves[pair[0]] + curves[pair[1]])
       used_indices.add(pair[0])
       used_indices.add(pair[1])
